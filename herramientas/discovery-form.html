@@ -111,11 +111,11 @@
 
   /* ---- 2x2 map ---- */
   .map-wrap{margin-bottom:10px;}
-  .map-axis-top, .map-axis-bottom{display:flex;justify-content:space-between;font:700 11px "Helvetica Neue",sans-serif;opacity:.6;text-transform:uppercase;letter-spacing:.05em;}
-  .map-axis-top{margin-bottom:6px;}
-  .map-axis-bottom{margin-top:6px;}
+  .map-grid{display:flex;flex-direction:column;align-items:center;gap:8px;max-width:460px;margin:0 auto;}
+  .map-label{font:700 11px "Helvetica Neue",sans-serif;opacity:.6;text-transform:uppercase;letter-spacing:.05em;flex:0 0 auto;}
+  .map-row{display:flex;align-items:center;gap:10px;width:100%;}
   .map-box{
-    position:relative;border:1.5px solid var(--line-strong);border-radius:10px;aspect-ratio:1/1;max-width:420px;margin:0 auto;
+    position:relative;border:1.5px solid var(--line-strong);border-radius:10px;aspect-ratio:1/1;flex:1;
     cursor:crosshair;
   }
   .map-box::before, .map-box::after{content:"";position:absolute;background:var(--line);}
@@ -249,9 +249,15 @@
     <p class="q-title">Ubicá tu marca en el mapa.</p>
     <p class="q-sub">Primero tocá el mapa para tu marca (crema). Después completá hasta 2 competidores y tocá el mapa de nuevo para ubicarlos.</p>
     <div class="map-wrap">
-      <div class="map-axis-top"><span>Reservado</span><span>Expresivo</span></div>
-      <div class="map-box" id="mapBox"></div>
-      <div class="map-axis-bottom"><span>Clásico</span><span>Moderno</span></div>
+      <div class="map-grid">
+        <div class="map-label">Expresivo</div>
+        <div class="map-row">
+          <div class="map-label">Clásico</div>
+          <div class="map-box" id="mapBox"></div>
+          <div class="map-label">Moderno</div>
+        </div>
+        <div class="map-label">Reservado</div>
+      </div>
     </div>
     <div class="map-controls">
       <input type="text" id="mapWho" placeholder="Ubicando: tu marca" disabled>
@@ -287,8 +293,11 @@
   <!-- FINAL -->
   <div class="step final" data-step="10">
     <p class="q-title">Listo.</p>
-    <p class="q-sub">Esto es lo que se junta al completar el formulario — todavía no se manda a ningún lado (backend pendiente, ver discovery-preguntas.md).</p>
+    <p class="q-sub">Revisá tus respuestas y mandalas por WhatsApp — se abre con todo ya redactado, solo hay que tocar enviar.</p>
     <pre id="summaryOut"></pre>
+    <div class="nav" style="padding-top:20px;margin-top:0;justify-content:flex-start;gap:12px;">
+      <button class="btn primary" id="btnSendWa">Enviar por WhatsApp</button>
+    </div>
   </div>
 
   <div class="nav">
@@ -298,6 +307,9 @@
 </div>
 
 <script>
+// Número que recibe las respuestas por WhatsApp — cambiar acá si hace falta.
+const WHATSAPP_NUMBER = '5491137821229'; // +54 9 11 3782 1229 (Tomás — prueba)
+
 const TOTAL_STEPS = 9;
 let current = 1;
 const answers = {
@@ -482,9 +494,71 @@ function collectStep(){
 }
 function q(id){ return document.getElementById(id).value; }
 
-function buildSummary(){
-  document.getElementById('summaryOut').textContent = JSON.stringify(answers, null, 2);
+function moodName(id){ const m = MOODS.find(x=>x.id===id); return m ? m.name : id; }
+function sliderLabel(id){ const s = SLIDERS.find(x=>x.id===id); return s ? `${s.left} ↔ ${s.right}` : id; }
+function describePoint(pt){
+  if (!pt) return '(sin ubicar)';
+  const h = pt.x < 50 ? 'Clásico' : 'Moderno';
+  const v = pt.y < 50 ? 'Expresivo' : 'Reservado';
+  return `${h} / ${v}`;
 }
+
+function formatSummary(){
+  const a = answers;
+  const lines = [];
+  lines.push('📋 Discovery de Identidad — respuestas\n');
+
+  lines.push('1) Moodboards');
+  lines.push(`Me identifico con: ${a.moods.like.map(moodName).join(' + ') || '(sin elegir)'}`);
+  lines.push(`No soy: ${a.moods.dislike ? moodName(a.moods.dislike) : '(sin elegir)'}\n`);
+
+  lines.push('2) Personalidad de marca (1-7)');
+  SLIDERS.forEach(s => lines.push(`${sliderLabel(s.id)}: ${a.sliders[s.id]}`));
+  lines.push('');
+
+  lines.push('3) Por qué me elegirían a mí y no a la competencia');
+  lines.push(`Competidor: ${a.q3.competitor || '-'}`);
+  lines.push(`Razón: ${a.q3.reason || '-'}\n`);
+
+  lines.push('4) Marcas');
+  lines.push(`Admiro: ${[a.q4.a, a.q4.b, a.q4.c].filter(Boolean).join(', ') || '-'}`);
+  lines.push(`No me gusta: ${a.q4.dislike || '-'}\n`);
+
+  lines.push('5) Palabras que me representan');
+  lines.push(a.words.join(', ') || '(sin elegir)');
+  lines.push('');
+
+  lines.push('6) Posicionamiento');
+  lines.push(`Mi marca: ${describePoint(a.map.mine)}`);
+  if (a.map.comp1) lines.push(`${a.map.comp1.name}: ${describePoint(a.map.comp1)}`);
+  if (a.map.comp2) lines.push(`${a.map.comp2.name}: ${describePoint(a.map.comp2)}`);
+  lines.push('');
+
+  lines.push('7) Audiencia principal, en orden');
+  lines.push(a.audience.map((x,i)=>`${i+1}) ${x}`).join('\n') || '(sin elegir)');
+  lines.push('');
+
+  lines.push('8) Dónde vive la marca');
+  lines.push(a.where.join(', ') || '(sin elegir)');
+  lines.push('');
+
+  lines.push('9) Restricciones');
+  lines.push(`Nombre definido: ${a.constraints.nombre || '-'}`);
+  lines.push(`Colores prohibidos: ${a.constraints.colores || '-'}`);
+  lines.push(`Assets a respetar: ${a.constraints.assets || '-'}`);
+  lines.push(`Deadline: ${a.constraints.deadline || '-'}`);
+
+  return lines.join('\n');
+}
+
+function buildSummary(){
+  document.getElementById('summaryOut').textContent = formatSummary();
+}
+
+document.getElementById('btnSendWa').onclick = () => {
+  const text = encodeURIComponent(formatSummary());
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
+};
 
 btnNext.onclick = () => { collectStep(); if (current <= TOTAL_STEPS + 1) current++; render(); };
 btnBack.onclick = () => { if (current > 1) current--; render(); };
