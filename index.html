@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Disenio Hub</title>
+<style>
+  :root{ --ink:#1a1a1a; --cream:#e8dcc8; --line:rgba(232,220,200,.28); }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink); color:var(--cream);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:560px;padding:40px 24px;}
+  .eyebrow{font:700 11px/1 sans-serif;text-transform:uppercase;letter-spacing:.14em;opacity:.55;margin:0 0 14px;}
+  h1{font:900 clamp(28px,6vw,40px)/1.05 "Helvetica Neue",sans-serif;letter-spacing:-.02em;margin:0 0 28px;}
+  .tool{
+    display:block;border:1.5px solid var(--line);border-radius:12px;padding:20px 22px;margin-bottom:12px;
+    text-decoration:none;color:var(--cream);transition:border-color .15s;
+  }
+  .tool:hover{border-color:var(--cream);}
+  .tool .name{font:900 16px "Helvetica Neue",sans-serif;margin-bottom:4px;}
+  .tool .desc{font:600 13px "Helvetica Neue",sans-serif;opacity:.6;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="eyebrow">COOKINGSOMETHING — Disenio Hub</p>
+  <h1>Herramientas de diseño e identidad</h1>
+  <a class="tool" href="herramientas/discovery-form.html">
+    <div class="name">Discovery de Identidad</div>
+    <div class="desc">Cuestionario de 9 preguntas para arrancar cualquier proyecto de marca nuevo</div>
+  </a>
+</div>
+</body>
+</html>

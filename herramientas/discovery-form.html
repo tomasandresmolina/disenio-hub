@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discovery de Identidad</title>
+<style>
+  @font-face{
+    font-family:"Helvetica Neue";
+    src:local("Helvetica Neue");
+  }
+  :root{
+    --ink:#1a1a1a;
+    --cream:#e8dcc8;
+    --cream-dim:#d9caaf;
+    --white:#ffffff;
+    --line:rgba(232,220,200,.28);
+    --line-strong:rgba(232,220,200,.55);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink); color:var(--cream);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{
+    max-width:720px;margin:0 auto;min-height:100vh;
+    display:flex;flex-direction:column;padding:28px 24px 40px;
+  }
+
+  /* ---- top bar: number as graphic element ---- */
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;}
+  .step-num{
+    font:900 15vw/.8 "Helvetica Neue",Helvetica,Arial,sans-serif;
+    letter-spacing:-.03em;
+  }
+  .step-total{font:700 13px/1 "Helvetica Neue",sans-serif;color:var(--cream);opacity:.55;text-transform:uppercase;letter-spacing:.08em;align-self:flex-end;margin-bottom:8px;}
+  .progress{height:2px;background:var(--line);margin-bottom:36px;position:relative;}
+  .progress-fill{position:absolute;left:0;top:0;height:100%;background:var(--cream);transition:width .3s ease;}
+
+  h1.brand{font:900 15px/1 "Helvetica Neue",sans-serif;text-transform:uppercase;letter-spacing:.12em;margin:0 0 40px;opacity:.7;}
+
+  .step{display:none;flex:1;flex-direction:column;}
+  .step.active{display:flex;}
+
+  .q-title{
+    font:900 clamp(24px,4.2vw,34px)/1.12 "Helvetica Neue",Helvetica,Arial,sans-serif;
+    letter-spacing:-.01em;margin:0 0 8px;
+  }
+  .q-sub{font:italic 700 14px/1.5 "Helvetica Neue",sans-serif;font-style:italic;color:var(--cream);opacity:.65;margin:0 0 28px;max-width:52ch;}
+
+  .field-group{margin-bottom:20px;}
+  label.f-label{display:block;font:700 11px/1 "Helvetica Neue",sans-serif;text-transform:uppercase;letter-spacing:.08em;opacity:.6;margin-bottom:8px;}
+
+  input[type=text], textarea{
+    width:100%;background:transparent;border:none;border-bottom:1px solid var(--line-strong);
+    color:var(--cream);font:600 17px/1.4 "Helvetica Neue",sans-serif;padding:10px 2px;
+    outline:none;transition:border-color .15s;
+  }
+  input[type=text]:focus, textarea:focus{border-color:var(--cream);}
+  textarea{resize:vertical;min-height:70px;}
+  input::placeholder, textarea::placeholder{color:var(--cream);opacity:.35;}
+
+  /* ---- moodboard grid ---- */
+  .mood-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:6px;}
+  .mood-card{
+    border:1.5px solid var(--line-strong);border-radius:10px;padding:18px 16px;cursor:pointer;
+    transition:all .15s;position:relative;min-height:110px;display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .mood-card:hover{border-color:var(--cream);}
+  .mood-card .mood-name{font:900 15px "Helvetica Neue",sans-serif;}
+  .mood-card .mood-desc{font:600 11.5px/1.4 "Helvetica Neue",sans-serif;opacity:.6;margin-top:6px;}
+  .mood-card .mood-mark{
+    position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:50%;
+    border:1.5px solid var(--line-strong);display:flex;align-items:center;justify-content:center;
+    font:900 12px/1 sans-serif;
+  }
+  .mood-card.like{border-color:var(--cream);background:rgba(232,220,200,.08);}
+  .mood-card.like .mood-mark{background:var(--cream);color:var(--ink);border-color:var(--cream);}
+  .mood-card.dislike{border-color:#c25a4a;opacity:.75;}
+  .mood-card.dislike .mood-mark{background:#c25a4a;color:var(--white);border-color:#c25a4a;}
+  .mood-legend{font:700 11px "Helvetica Neue",sans-serif;opacity:.55;margin-top:14px;}
+  .placeholder-flag{
+    display:inline-block;margin-top:14px;font:700 10px "Helvetica Neue",sans-serif;letter-spacing:.06em;text-transform:uppercase;
+    border:1px dashed var(--line-strong);padding:4px 9px;border-radius:100px;opacity:.55;
+  }
+
+  /* ---- sliders ---- */
+  .slider-row{margin-bottom:26px;}
+  .slider-labels{display:flex;justify-content:space-between;font:700 12px "Helvetica Neue",sans-serif;margin-bottom:10px;}
+  .slider-labels span{opacity:.75;}
+  input[type=range]{
+    -webkit-appearance:none;width:100%;height:2px;background:var(--line-strong);outline:none;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--cream);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--cream);border:none;cursor:pointer;}
+
+  /* ---- word bank ---- */
+  .word-grid{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:6px;}
+  .word-chip{
+    border:1.5px solid var(--line-strong);border-radius:100px;padding:9px 16px;font:700 13.5px "Helvetica Neue",sans-serif;
+    cursor:pointer;transition:all .12s;
+  }
+  .word-chip:hover{border-color:var(--cream);}
+  .word-chip.picked{background:var(--cream);color:var(--ink);border-color:var(--cream);}
+  .word-count{font:700 12px "Helvetica Neue",sans-serif;opacity:.55;margin-top:14px;}
+
+  /* ---- 2x2 map ---- */
+  .map-wrap{margin-bottom:10px;}
+  .map-axis-top, .map-axis-bottom{display:flex;justify-content:space-between;font:700 11px "Helvetica Neue",sans-serif;opacity:.6;text-transform:uppercase;letter-spacing:.05em;}
+  .map-axis-top{margin-bottom:6px;}
+  .map-axis-bottom{margin-top:6px;}
+  .map-box{
+    position:relative;border:1.5px solid var(--line-strong);border-radius:10px;aspect-ratio:1/1;max-width:420px;margin:0 auto;
+    cursor:crosshair;
+  }
+  .map-box::before, .map-box::after{content:"";position:absolute;background:var(--line);}
+  .map-box::before{left:50%;top:0;bottom:0;width:1px;}
+  .map-box::after{top:50%;left:0;right:0;height:1px;}
+  .map-pin{
+    position:absolute;width:14px;height:14px;border-radius:50%;transform:translate(-50%,-50%);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .map-pin .pin-label{
+    position:absolute;top:16px;left:50%;transform:translateX(-50%);white-space:nowrap;font:900 10px "Helvetica Neue",sans-serif;
+  }
+  .pin-mine{background:var(--cream);}
+  .pin-comp1{background:#c25a4a;}
+  .pin-comp2{background:#6a8fae;}
+  .map-controls{display:flex;gap:10px;margin-top:16px;flex-wrap:wrap;}
+  .map-controls input{flex:1;min-width:140px;}
+
+  /* ---- rank list ---- */
+  .rank-grid{display:flex;flex-direction:column;gap:8px;}
+  .rank-item{
+    display:flex;align-items:center;gap:12px;border:1.5px solid var(--line-strong);border-radius:10px;padding:12px 14px;
+    cursor:pointer;transition:all .12s;
+  }
+  .rank-item:hover{border-color:var(--cream);}
+  .rank-item .rn{
+    width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line-strong);flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;font:900 12px sans-serif;
+  }
+  .rank-item.on{border-color:var(--cream);background:rgba(232,220,200,.08);}
+  .rank-item.on .rn{background:var(--cream);color:var(--ink);border-color:var(--cream);}
+  .rank-item .rt{font:700 14.5px "Helvetica Neue",sans-serif;}
+
+  /* ---- checkbox list ---- */
+  .check-grid{display:flex;flex-direction:column;gap:8px;}
+  .check-item{
+    display:flex;align-items:center;gap:12px;border:1.5px solid var(--line-strong);border-radius:10px;padding:12px 14px;
+    cursor:pointer;transition:all .12s;
+  }
+  .check-item:hover{border-color:var(--cream);}
+  .check-item .cb{width:18px;height:18px;border:1.5px solid var(--line-strong);border-radius:4px;flex:0 0 auto;position:relative;}
+  .check-item.on{border-color:var(--cream);}
+  .check-item.on .cb{background:var(--cream);}
+  .check-item.on .cb::after{content:"";position:absolute;left:5px;top:1px;width:5px;height:9px;border:solid var(--ink);border-width:0 2px 2px 0;transform:rotate(40deg);}
+  .check-item .ct{font:700 14.5px "Helvetica Neue",sans-serif;}
+
+  /* ---- nav ---- */
+  .nav{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:32px;}
+  .btn{
+    appearance:none;border:1.5px solid var(--cream);background:transparent;color:var(--cream);
+    font:900 13px "Helvetica Neue",sans-serif;text-transform:uppercase;letter-spacing:.06em;
+    padding:14px 26px;border-radius:100px;cursor:pointer;transition:all .15s;
+  }
+  .btn.primary{background:var(--cream);color:var(--ink);}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.ghost{border-color:var(--line-strong);color:var(--cream);opacity:.7;}
+  .btn.ghost:hover{opacity:1;border-color:var(--cream);}
+  .btn:disabled{opacity:.25;cursor:default;}
+
+  /* ---- final screen ---- */
+  .final pre{
+    background:rgba(232,220,200,.06);border:1px solid var(--line);border-radius:10px;padding:18px;
+    font:12px/1.6 ui-monospace,"SF Mono",Consolas,monospace;color:var(--cream);white-space:pre-wrap;overflow-x:auto;
+    max-height:340px;overflow-y:auto;
+  }
+
+  @media (max-width:520px){
+    .mood-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1 class="brand">Discovery de Identidad</h1>
+
+  <div class="topbar">
+    <div class="step-num" id="stepNum">01</div>
+    <div class="step-total">de 09</div>
+  </div>
+  <div class="progress"><div class="progress-fill" id="progressFill" style="width:11%"></div></div>
+
+  <!-- STEP 1: moodboards -->
+  <div class="step active" data-step="1">
+    <p class="q-title">Elegí 2 direcciones que te representan.</p>
+    <p class="q-sub">Y marcá 1 que sentís que definitivamente no sos vos. Tocá dos veces una tarjeta para pasar de "me gusta" a "no soy yo".</p>
+    <div class="mood-grid" id="moodGrid"></div>
+    <span class="placeholder-flag">Placeholder — reemplazar con moodboards reales curados por proyecto</span>
+  </div>
+
+  <!-- STEP 2: sliders -->
+  <div class="step" data-step="2">
+    <p class="q-title">¿Cómo se siente tu marca?</p>
+    <p class="q-sub">No hay respuesta correcta — moví cada control hacia donde sientas que está hoy, o hacia donde querés que esté.</p>
+    <div id="slidersWrap"></div>
+  </div>
+
+  <!-- STEP 3: open question -->
+  <div class="step" data-step="3">
+    <p class="q-title">¿Por qué te elegirían a vos y no a tu competencia?</p>
+    <p class="q-sub">Una o dos líneas alcanzan. Es la única pregunta abierta de todo el formulario — pensala bien.</p>
+    <div class="field-group">
+      <label class="f-label">Tu competidor principal</label>
+      <input type="text" id="q3competitor" placeholder="Nombre del negocio o marca">
+    </div>
+    <div class="field-group">
+      <label class="f-label">La razón</label>
+      <textarea id="q3reason" placeholder="Escribí acá..."></textarea>
+    </div>
+  </div>
+
+  <!-- STEP 4: brands admire/hate -->
+  <div class="step" data-step="4">
+    <p class="q-title">Marcas que mirás con admiración, y una que no.</p>
+    <p class="q-sub">No tienen que ser del mismo rubro. Lo que rechazás dice tanto como lo que te gusta.</p>
+    <div class="field-group"><label class="f-label">Marca que admirás — 1</label><input type="text" id="q4a" placeholder=""></div>
+    <div class="field-group"><label class="f-label">Marca que admirás — 2</label><input type="text" id="q4b" placeholder=""></div>
+    <div class="field-group"><label class="f-label">Marca que admirás — 3</label><input type="text" id="q4c" placeholder=""></div>
+    <div class="field-group"><label class="f-label">Una marca que no te gusta nada</label><input type="text" id="q4d" placeholder=""></div>
+  </div>
+
+  <!-- STEP 5: word bank -->
+  <div class="step" data-step="5">
+    <p class="q-title">Elegí 4 palabras.</p>
+    <p class="q-sub">Las que más se acerquen a cómo querés que se sienta la marca.</p>
+    <div class="word-grid" id="wordGrid"></div>
+    <p class="word-count" id="wordCount">0 de 4 elegidas</p>
+  </div>
+
+  <!-- STEP 6: 2x2 map -->
+  <div class="step" data-step="6">
+    <p class="q-title">Ubicá tu marca en el mapa.</p>
+    <p class="q-sub">Primero tocá el mapa para tu marca (crema). Después completá hasta 2 competidores y tocá el mapa de nuevo para ubicarlos.</p>
+    <div class="map-wrap">
+      <div class="map-axis-top"><span>Reservado</span><span>Expresivo</span></div>
+      <div class="map-box" id="mapBox"></div>
+      <div class="map-axis-bottom"><span>Clásico</span><span>Moderno</span></div>
+    </div>
+    <div class="map-controls">
+      <input type="text" id="mapWho" placeholder="Ubicando: tu marca" disabled>
+      <input type="text" id="comp1Name" placeholder="Nombre competidor 1">
+      <input type="text" id="comp2Name" placeholder="Nombre competidor 2">
+    </div>
+  </div>
+
+  <!-- STEP 7: audience ranking -->
+  <div class="step" data-step="7">
+    <p class="q-title">¿A quién le habla esta marca primero?</p>
+    <p class="q-sub">Elegí 3 en orden de prioridad — la primera que toques es la #1.</p>
+    <div class="rank-grid" id="rankGrid"></div>
+  </div>
+
+  <!-- STEP 8: where does the brand live -->
+  <div class="step" data-step="8">
+    <p class="q-title">¿Dónde va a vivir la marca?</p>
+    <p class="q-sub">Marcá todo lo que aplique — define qué entregables hacen falta.</p>
+    <div class="check-grid" id="whereGrid"></div>
+  </div>
+
+  <!-- STEP 9: hard constraints -->
+  <div class="step" data-step="9">
+    <p class="q-title">Antes de arrancar — lo que no se puede tocar.</p>
+    <p class="q-sub">Restricciones reales, para no rehacer trabajo después.</p>
+    <div class="field-group"><label class="f-label">¿El nombre ya está definido?</label><input type="text" id="q9nombre" placeholder="Sí / No — si ya existe, escribilo acá"></div>
+    <div class="field-group"><label class="f-label">Colores prohibidos</label><input type="text" id="q9colores" placeholder="Ej: nada de rojo, evitar el celeste del competidor"></div>
+    <div class="field-group"><label class="f-label">Assets existentes que hay que respetar</label><input type="text" id="q9assets" placeholder="Logo viejo, tipografía ya comprada, etc."></div>
+    <div class="field-group"><label class="f-label">Fecha límite</label><input type="text" id="q9deadline" placeholder="Si la hay"></div>
+  </div>
+
+  <!-- FINAL -->
+  <div class="step final" data-step="10">
+    <p class="q-title">Listo.</p>
+    <p class="q-sub">Esto es lo que se junta al completar el formulario — todavía no se manda a ningún lado (backend pendiente, ver discovery-preguntas.md).</p>
+    <pre id="summaryOut"></pre>
+  </div>
+
+  <div class="nav">
+    <button class="btn ghost" id="btnBack">Atrás</button>
+    <button class="btn primary" id="btnNext">Siguiente</button>
+  </div>
+</div>
+
+<script>
+const TOTAL_STEPS = 9;
+let current = 1;
+const answers = {
+  moods: {like:[], dislike:null},
+  sliders: {},
+  q3: {}, q4: {}, words: [], map: {}, audience: [], where: [], constraints: {}
+};
+
+/* ---- data ---- */
+const MOODS = [
+  {id:'a', name:'Minimalista corporativo', desc:'Blanco, negro, mucho aire, tipografía limpia'},
+  {id:'b', name:'Editorial de lujo', desc:'Serif elegante, negro/crema, fotografía cuidada'},
+  {id:'c', name:'Cálido / artesanal', desc:'Texturas, tonos tierra, sensación hecha a mano'},
+  {id:'d', name:'Tech / futurista', desc:'Gradientes fríos, geometría, sensación de precisión'},
+  {id:'e', name:'Bold / gráfico', desc:'Color primario, formas grandes, energía pop'},
+  {id:'f', name:'Retro con carácter', desc:'Paleta terrosa, tipografía con historia, imperfecto a propósito'},
+];
+
+const SLIDERS = [
+  {id:'s1', left:'Amigo', right:'Autoridad'},
+  {id:'s2', left:'Joven / Innovador', right:'Maduro / Clásico'},
+  {id:'s3', left:'Juguetón', right:'Serio'},
+  {id:'s4', left:'Masivo', right:'Elite'},
+];
+
+const WORDS = ['Cálido','Frío','Minimalista','Maximalista','Serio','Divertido','Clásico','Innovador','Discreto','Llamativo','Artesanal','Industrial','Cercano','Aspiracional','Audaz','Prudente','Orgánico','Geométrico','Lujoso','Accesible','Rebelde','Establecido','Simple','Complejo'];
+
+const AUDIENCES = ['Dueños de pymes','Profesionales independientes','Consumidores jóvenes (18-30)','Familias','Empresas medianas/corporativas','Otros negocios del mismo rubro','Inversores','Comunidad / fans'];
+
+const WHERE = ['Sitio web','App','Local / cartel físico','Redes sociales','Packaging / producto físico','Papelería (tarjetas, facturas)'];
+
+/* ---- render: moods ---- */
+const moodGrid = document.getElementById('moodGrid');
+MOODS.forEach(m => {
+  const card = document.createElement('div');
+  card.className = 'mood-card';
+  card.dataset.id = m.id;
+  card.innerHTML = `<div><div class="mood-name">${m.name}</div><div class="mood-desc">${m.desc}</div></div><div class="mood-mark"></div>`;
+  card.onclick = () => {
+    const liked = answers.moods.like.includes(m.id);
+    const disliked = answers.moods.dislike === m.id;
+    if (liked) {
+      answers.moods.like = answers.moods.like.filter(x=>x!==m.id);
+      card.classList.remove('like'); card.querySelector('.mood-mark').textContent='';
+    } else if (disliked) {
+      answers.moods.dislike = null; card.classList.remove('dislike'); card.querySelector('.mood-mark').textContent='';
+    } else if (answers.moods.like.length < 2) {
+      answers.moods.like.push(m.id); card.classList.add('like'); card.querySelector('.mood-mark').textContent='✓';
+    } else if (!answers.moods.dislike) {
+      answers.moods.dislike = m.id; card.classList.add('dislike'); card.querySelector('.mood-mark').textContent='✕';
+    }
+  };
+  moodGrid.appendChild(card);
+});
+
+/* ---- render: sliders ---- */
+const slidersWrap = document.getElementById('slidersWrap');
+SLIDERS.forEach(s => {
+  answers.sliders[s.id] = 4;
+  const row = document.createElement('div');
+  row.className = 'slider-row';
+  row.innerHTML = `<div class="slider-labels"><span>${s.left}</span><span>${s.right}</span></div>
+    <input type="range" min="1" max="7" value="4" id="${s.id}">`;
+  slidersWrap.appendChild(row);
+  row.querySelector('input').oninput = (e) => { answers.sliders[s.id] = Number(e.target.value); };
+});
+
+/* ---- render: word bank ---- */
+const wordGrid = document.getElementById('wordGrid');
+WORDS.forEach(w => {
+  const chip = document.createElement('div');
+  chip.className = 'word-chip';
+  chip.textContent = w;
+  chip.onclick = () => {
+    const idx = answers.words.indexOf(w);
+    if (idx > -1) { answers.words.splice(idx,1); chip.classList.remove('picked'); }
+    else if (answers.words.length < 4) { answers.words.push(w); chip.classList.add('picked'); }
+    document.getElementById('wordCount').textContent = `${answers.words.length} de 4 elegidas`;
+  };
+  wordGrid.appendChild(chip);
+});
+
+/* ---- render: 2x2 map ---- */
+const mapBox = document.getElementById('mapBox');
+let mapStage = 'mine';
+mapBox.onclick = (e) => {
+  const rect = mapBox.getBoundingClientRect();
+  const x = ((e.clientX - rect.left) / rect.width) * 100;
+  const y = ((e.clientY - rect.top) / rect.height) * 100;
+  if (mapStage === 'mine') {
+    answers.map.mine = {x, y};
+    placePin('mine', x, y, 'Vos');
+    const c1 = document.getElementById('comp1Name').value.trim();
+    mapStage = c1 ? 'comp1' : 'done';
+    document.getElementById('mapWho').value = c1 ? `Ubicando: ${c1}` : 'Listo';
+  } else if (mapStage === 'comp1') {
+    const name = document.getElementById('comp1Name').value.trim() || 'Competidor 1';
+    answers.map.comp1 = {name, x, y};
+    placePin('comp1', x, y, name);
+    const c2 = document.getElementById('comp2Name').value.trim();
+    mapStage = c2 ? 'comp2' : 'done';
+    document.getElementById('mapWho').value = c2 ? `Ubicando: ${c2}` : 'Listo';
+  } else if (mapStage === 'comp2') {
+    const name = document.getElementById('comp2Name').value.trim() || 'Competidor 2';
+    answers.map.comp2 = {name, x, y};
+    placePin('comp2', x, y, name);
+    mapStage = 'done';
+    document.getElementById('mapWho').value = 'Listo';
+  }
+};
+function placePin(kind, x, y, label){
+  const existing = mapBox.querySelector('.pin-'+kind);
+  if (existing) existing.remove();
+  const pin = document.createElement('div');
+  pin.className = 'map-pin pin-'+kind;
+  pin.style.left = x+'%'; pin.style.top = y+'%';
+  pin.innerHTML = `<span class="pin-label">${label}</span>`;
+  mapBox.appendChild(pin);
+}
+
+/* ---- render: audience ranking ---- */
+const rankGrid = document.getElementById('rankGrid');
+AUDIENCES.forEach(a => {
+  const item = document.createElement('div');
+  item.className = 'rank-item';
+  item.innerHTML = `<div class="rn"></div><div class="rt">${a}</div>`;
+  item.onclick = () => {
+    const idx = answers.audience.indexOf(a);
+    if (idx > -1) {
+      answers.audience.splice(idx,1);
+      item.classList.remove('on'); item.querySelector('.rn').textContent='';
+      refreshRanks();
+    } else if (answers.audience.length < 3) {
+      answers.audience.push(a);
+      item.classList.add('on'); item.querySelector('.rn').textContent = answers.audience.length;
+    }
+  };
+  rankGrid.appendChild(item);
+});
+function refreshRanks(){
+  [...rankGrid.children].forEach(item => {
+    const label = item.querySelector('.rt').textContent;
+    const idx = answers.audience.indexOf(label);
+    item.querySelector('.rn').textContent = idx > -1 ? idx+1 : '';
+  });
+}
+
+/* ---- render: where ---- */
+const whereGrid = document.getElementById('whereGrid');
+WHERE.forEach(w => {
+  const item = document.createElement('div');
+  item.className = 'check-item';
+  item.innerHTML = `<div class="cb"></div><div class="ct">${w}</div>`;
+  item.onclick = () => {
+    const idx = answers.where.indexOf(w);
+    if (idx > -1) { answers.where.splice(idx,1); item.classList.remove('on'); }
+    else { answers.where.push(w); item.classList.add('on'); }
+  };
+  whereGrid.appendChild(item);
+});
+
+/* ---- nav ---- */
+const stepNum = document.getElementById('stepNum');
+const progressFill = document.getElementById('progressFill');
+const btnBack = document.getElementById('btnBack');
+const btnNext = document.getElementById('btnNext');
+
+function render(){
+  document.querySelectorAll('.step').forEach(s => s.classList.toggle('active', Number(s.dataset.step) === current));
+  stepNum.textContent = String(Math.min(current, TOTAL_STEPS)).padStart(2,'0');
+  progressFill.style.width = (Math.min(current, TOTAL_STEPS) / TOTAL_STEPS * 100) + '%';
+  btnBack.disabled = current === 1;
+  btnNext.textContent = current === TOTAL_STEPS ? 'Terminar' : (current > TOTAL_STEPS ? '' : 'Siguiente');
+  btnNext.style.display = current > TOTAL_STEPS ? 'none' : 'inline-block';
+  if (current > TOTAL_STEPS) buildSummary();
+}
+
+function collectStep(){
+  if (current === 3) { answers.q3 = {competitor: document.getElementById('q3competitor').value, reason: document.getElementById('q3reason').value}; }
+  if (current === 4) { answers.q4 = {a:q('q4a'), b:q('q4b'), c:q('q4c'), dislike:q('q4d')}; }
+  if (current === 9) { answers.constraints = {nombre:q('q9nombre'), colores:q('q9colores'), assets:q('q9assets'), deadline:q('q9deadline')}; }
+}
+function q(id){ return document.getElementById(id).value; }
+
+function buildSummary(){
+  document.getElementById('summaryOut').textContent = JSON.stringify(answers, null, 2);
+}
+
+btnNext.onclick = () => { collectStep(); if (current <= TOTAL_STEPS + 1) current++; render(); };
+btnBack.onclick = () => { if (current > 1) current--; render(); };
+
+render();
+</script>
+</body>
+</html>
