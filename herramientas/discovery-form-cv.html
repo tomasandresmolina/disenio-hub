@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Discovery de CV</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#15130f;
+    --paper:#f5efe1;
+    --paper-dim:#e6dcc6;
+    --white:#ffffff;
+    --accent:#e8a23c;
+    --accent-ink:#15130f;
+    --line:rgba(245,239,225,.24);
+    --line-strong:rgba(245,239,225,.5);
+    --bad:#c25a4a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--ink); color:var(--paper);
+    font-family:"Archivo",Helvetica,Arial,sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  .shell{
+    max-width:720px;margin:0 auto;min-height:100vh;
+    display:flex;flex-direction:column;padding:28px 24px 40px;
+  }
+
+  .topbar{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px;}
+  .step-num{font:900 15vw/.8 "Archivo",sans-serif;letter-spacing:-.03em;color:var(--accent);}
+  .step-total{font:700 13px/1 "Archivo",sans-serif;color:var(--paper);opacity:.55;text-transform:uppercase;letter-spacing:.08em;align-self:flex-end;margin-bottom:8px;}
+  .progress{height:2px;background:var(--line);margin-bottom:36px;position:relative;}
+  .progress-fill{position:absolute;left:0;top:0;height:100%;background:var(--accent);transition:width .3s ease;}
+
+  h1.brand{font:900 15px/1 "Archivo",sans-serif;text-transform:uppercase;letter-spacing:.12em;margin:0 0 40px;opacity:.7;}
+
+  .step{display:none;flex:1;flex-direction:column;}
+  .step.active{display:flex;}
+
+  .q-title{font:800 clamp(24px,4.2vw,34px)/1.12 "Archivo",Helvetica,Arial,sans-serif;letter-spacing:-.01em;margin:0 0 8px;}
+  .q-sub{font:italic 600 14px/1.5 "Archivo",sans-serif;color:var(--paper);opacity:.62;margin:0 0 28px;max-width:54ch;}
+
+  .field-group{margin-bottom:20px;}
+  label.f-label{display:block;font:700 11px/1 "Archivo",sans-serif;text-transform:uppercase;letter-spacing:.08em;opacity:.6;margin-bottom:8px;}
+
+  input[type=text], input[type=number], textarea{
+    width:100%;background:transparent;border:none;border-bottom:1px solid var(--line-strong);
+    color:var(--paper);font:600 17px/1.4 "Archivo",sans-serif;padding:10px 2px;
+    outline:none;transition:border-color .15s;font-family:"Archivo",sans-serif;
+  }
+  input:focus, textarea:focus{border-color:var(--accent);}
+  textarea{resize:vertical;min-height:64px;}
+  input::placeholder, textarea::placeholder{color:var(--paper);opacity:.32;}
+
+  /* ---- single-select chip row ---- */
+  .chip-row{display:flex;flex-wrap:wrap;gap:9px;}
+  .chip{
+    border:1.5px solid var(--line-strong);border-radius:100px;padding:9px 16px;font:700 13.5px "Archivo",sans-serif;
+    cursor:pointer;transition:all .12s;
+  }
+  .chip:hover{border-color:var(--accent);}
+  .chip.picked{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+
+  /* ---- repeatable block card ---- */
+  .rep-block{border:1.5px solid var(--line-strong);border-radius:12px;padding:18px 18px 6px;margin-bottom:14px;}
+  .rep-block-label{font:900 11px "Archivo",sans-serif;text-transform:uppercase;letter-spacing:.08em;opacity:.5;margin-bottom:14px;}
+  .rep-block[hidden]{display:none;}
+  .add-btn{
+    appearance:none;background:transparent;border:1.5px dashed var(--line-strong);color:var(--paper);
+    font:700 13px "Archivo",sans-serif;text-transform:uppercase;letter-spacing:.06em;
+    padding:12px 18px;border-radius:10px;cursor:pointer;width:100%;transition:all .15s;opacity:.75;
+  }
+  .add-btn:hover{border-color:var(--accent);color:var(--accent);opacity:1;}
+  .add-btn[hidden]{display:none;}
+
+  .inline-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .checkbox-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;font:600 13px "Archivo",sans-serif;opacity:.85;}
+  .checkbox-row input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent);flex:0 0 auto;}
+
+  /* ---- optional-data card ---- */
+  .opt-card{border:1.5px solid var(--line-strong);border-radius:12px;padding:16px 18px;margin-bottom:12px;}
+  .opt-card .checkbox-row{margin-bottom:12px;}
+  .opt-card .field-group{margin-bottom:0;}
+
+  /* ---- nav ---- */
+  .nav{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:32px;}
+  .btn{
+    appearance:none;border:1.5px solid var(--paper);background:transparent;color:var(--paper);
+    font:900 13px "Archivo",sans-serif;text-transform:uppercase;letter-spacing:.06em;
+    padding:14px 26px;border-radius:100px;cursor:pointer;transition:all .15s;
+  }
+  .btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .btn.ghost{border-color:var(--line-strong);color:var(--paper);opacity:.7;}
+  .btn.ghost:hover{opacity:1;border-color:var(--paper);}
+  .btn:disabled{opacity:.25;cursor:default;}
+
+  .final pre{
+    background:rgba(245,239,225,.06);border:1px solid var(--line);border-radius:10px;padding:18px;
+    font:12px/1.6 ui-monospace,"SF Mono",Consolas,monospace;color:var(--paper);white-space:pre-wrap;overflow-x:auto;
+    max-height:340px;overflow-y:auto;
+  }
+
+  @media (max-width:520px){
+    .inline-row{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1 class="brand">Discovery de CV</h1>
+
+  <div class="topbar">
+    <div class="step-num" id="stepNum">01</div>
+    <div class="step-total">de 10</div>
+  </div>
+  <div class="progress"><div class="progress-fill" id="progressFill" style="width:10%"></div></div>
+
+  <!-- STEP 1: contacto -->
+  <div class="step active" data-step="1">
+    <p class="q-title">Empecemos por lo básico.</p>
+    <p class="q-sub">Cómo te contactan si les interesa tu perfil.</p>
+    <div class="field-group"><label class="f-label">Nombre completo</label><input type="text" id="c_nombre" placeholder="Nombre y apellido"></div>
+    <div class="inline-row">
+      <div class="field-group"><label class="f-label">Teléfono</label><input type="text" id="c_tel" placeholder="+54 9 11..."></div>
+      <div class="field-group"><label class="f-label">Email</label><input type="text" id="c_mail" placeholder="tu@mail.com"></div>
+    </div>
+    <div class="inline-row">
+      <div class="field-group"><label class="f-label">Ciudad</label><input type="text" id="c_ciudad" placeholder="Ciudad, País"></div>
+      <div class="field-group"><label class="f-label">LinkedIn (si tenés)</label><input type="text" id="c_linkedin" placeholder="linkedin.com/in/..."></div>
+    </div>
+  </div>
+
+  <!-- STEP 2: rubro objetivo -->
+  <div class="step" data-step="2">
+    <p class="q-title">¿A qué mundo querés entrar?</p>
+    <p class="q-sub">El rubro o tipo de puesto que buscás — esto define todo lo demás: cómo se escribe el CV y qué palabras clave importan ahí.</p>
+    <div class="field-group"><label class="f-label">Rubro o rol objetivo</label><input type="text" id="t_rubro" placeholder="Ej: logística, salud, diseño, docencia..."></div>
+    <div class="field-group"><label class="f-label">Algo más específico (opcional)</label><textarea id="t_detalle" placeholder="Tipo de empresa, ambiente que buscás, algo puntual que tengas en mente"></textarea></div>
+  </div>
+
+  <!-- STEP 3: situación actual -->
+  <div class="step" data-step="3">
+    <p class="q-title">¿Cómo es tu situación hoy?</p>
+    <p class="q-sub">Define cómo se maneja el tono del CV y los tiempos entre trabajos.</p>
+    <div class="chip-row" id="situationGrid"></div>
+  </div>
+
+  <!-- STEP 4: experiencia -->
+  <div class="step" data-step="4">
+    <p class="q-title">Tu experiencia laboral.</p>
+    <p class="q-sub">Por cada trabajo: qué cambió gracias a vos ahí — con un número si podés (tiempo, plata, cantidad, gente, calidad). No hace falta la lista de tareas, hace falta el resultado.</p>
+    <div id="expWrap"></div>
+    <button class="add-btn" id="expAddBtn">+ Agregar otra experiencia</button>
+  </div>
+
+  <!-- STEP 5: educación -->
+  <div class="step" data-step="5">
+    <p class="q-title">Educación y certificaciones.</p>
+    <p class="q-sub">Formación formal, cursos o certificaciones relevantes para el rubro que elegiste.</p>
+    <div id="eduWrap"></div>
+    <button class="add-btn" id="eduAddBtn">+ Agregar otra formación</button>
+  </div>
+
+  <!-- STEP 6: skills -->
+  <div class="step" data-step="6">
+    <p class="q-title">Fortalezas y herramientas.</p>
+    <p class="q-sub">Separadas por coma. No hace falta ordenarlas, después las ordenamos nosotros.</p>
+    <div class="field-group"><label class="f-label">Tus fortalezas</label><textarea id="s_fortalezas" placeholder="Ej: organización, resolución de problemas, trabajo en equipo..."></textarea></div>
+    <div class="field-group"><label class="f-label">Herramientas / software que manejás</label><textarea id="s_herramientas" placeholder="Ej: Excel, Salesforce, AutoCAD, lo que aplique a tu rubro..."></textarea></div>
+  </div>
+
+  <!-- STEP 7: idiomas -->
+  <div class="step" data-step="7">
+    <p class="q-title">Idiomas.</p>
+    <p class="q-sub">Con el nivel real, no el aspiracional.</p>
+    <div id="langWrap"></div>
+    <button class="add-btn" id="langAddBtn">+ Agregar otro idioma</button>
+  </div>
+
+  <!-- STEP 8: pitch -->
+  <div class="step" data-step="8">
+    <p class="q-title">¿Por qué te elegirían a vos?</p>
+    <p class="q-sub">Una sola pregunta abierta en todo el formulario — pensala bien. No hace falta que sea perfecta, es materia prima para el resumen del CV.</p>
+    <div class="field-group"><textarea id="p_pitch" placeholder="Escribí acá..." style="min-height:110px"></textarea></div>
+  </div>
+
+  <!-- STEP 9: datos opcionales -->
+  <div class="step" data-step="9">
+    <p class="q-title">Datos que van solo si vos querés.</p>
+    <p class="q-sub">Ninguno es obligatorio hoy en Argentina — decidí vos si sumarlos.</p>
+    <div class="opt-card">
+      <div class="checkbox-row"><input type="checkbox" id="o_foto_chk"><label for="o_foto_chk">Incluir foto</label></div>
+      <div class="field-group"><input type="text" id="o_foto_nota" placeholder="Si tenés una foto en mente, contanos cuál (opcional)"></div>
+    </div>
+    <div class="opt-card">
+      <div class="checkbox-row"><input type="checkbox" id="o_edad_chk"><label for="o_edad_chk">Incluir edad</label></div>
+      <div class="field-group"><input type="text" id="o_edad_val" placeholder="Tu edad"></div>
+    </div>
+    <div class="opt-card">
+      <div class="checkbox-row"><input type="checkbox" id="o_civil_chk"><label for="o_civil_chk">Incluir estado civil</label></div>
+      <div class="field-group"><input type="text" id="o_civil_val" placeholder="Tu estado civil"></div>
+    </div>
+  </div>
+
+  <!-- STEP 10: restricciones -->
+  <div class="step" data-step="10">
+    <p class="q-title">Antes de arrancar.</p>
+    <p class="q-sub">Algo que prefieras dejar afuera o un tiempo límite, si lo hay.</p>
+    <div class="field-group"><label class="f-label">Algo que preferís no incluir</label><textarea id="r_omitir" placeholder="Ej: un trabajo puntual, un período sin actividad que preferís manejar en la entrevista"></textarea></div>
+    <div class="field-group"><label class="f-label">¿Hay una fecha límite?</label><input type="text" id="r_deadline" placeholder="Si la hay"></div>
+  </div>
+
+  <!-- FINAL -->
+  <div class="step final" data-step="11">
+    <p class="q-title">Listo.</p>
+    <p class="q-sub">Revisá tus respuestas y mandalas por WhatsApp — se abre con todo ya redactado, solo hay que tocar enviar.</p>
+    <pre id="summaryOut"></pre>
+    <div class="nav" style="padding-top:20px;margin-top:0;justify-content:flex-start;gap:12px;">
+      <button class="btn primary" id="btnSendWa">Enviar por WhatsApp</button>
+    </div>
+  </div>
+
+  <div class="nav">
+    <button class="btn ghost" id="btnBack">Atrás</button>
+    <button class="btn primary" id="btnNext">Siguiente</button>
+  </div>
+</div>
+
+<script>
+// Número que recibe las respuestas por WhatsApp — cambiar acá si hace falta.
+const WHATSAPP_NUMBER = '5491137821229'; // +54 9 11 3782 1229 (Tomás)
+
+const TOTAL_STEPS = 10;
+let current = 1;
+
+/* ---- situación: single-select chips ---- */
+const SITUATIONS = ['Buscando un cambio','Sin empleo actualmente','Primer empleo','Freelance / independiente'];
+let situationValue = '';
+const situationGrid = document.getElementById('situationGrid');
+SITUATIONS.forEach(s => {
+  const chip = document.createElement('div');
+  chip.className = 'chip';
+  chip.textContent = s;
+  chip.onclick = () => {
+    situationValue = s;
+    [...situationGrid.children].forEach(c => c.classList.toggle('picked', c.textContent === s));
+  };
+  situationGrid.appendChild(chip);
+});
+
+/* ---- generic repeatable block builder ---- */
+function buildRepeatable(wrapId, addBtnId, max, defaultVisible, fieldsHtml, label){
+  const wrap = document.getElementById(wrapId);
+  const addBtn = document.getElementById(addBtnId);
+  let visible = defaultVisible;
+  const blocks = [];
+  for(let i=0;i<max;i++){
+    const block = document.createElement('div');
+    block.className = 'rep-block';
+    block.hidden = i >= defaultVisible;
+    block.innerHTML = `<div class="rep-block-label">${label} ${i+1}</div>` + fieldsHtml(i);
+    wrap.appendChild(block);
+    blocks.push(block);
+  }
+  function refreshAddBtn(){ addBtn.hidden = visible >= max; }
+  addBtn.onclick = () => { if (visible < max){ blocks[visible].hidden = false; visible++; refreshAddBtn(); } };
+  refreshAddBtn();
+  return blocks;
+}
+
+/* ---- experiencia ---- */
+const expBlocks = buildRepeatable('expWrap','expAddBtn',4,2,(i)=>`
+  <div class="inline-row">
+    <div class="field-group"><label class="f-label">Puesto</label><input type="text" id="exp_puesto_${i}"></div>
+    <div class="field-group"><label class="f-label">Empresa</label><input type="text" id="exp_empresa_${i}"></div>
+  </div>
+  <div class="inline-row">
+    <div class="field-group"><label class="f-label">Desde</label><input type="text" id="exp_desde_${i}" placeholder="Mes / año"></div>
+    <div class="field-group"><label class="f-label">Hasta</label><input type="text" id="exp_hasta_${i}" placeholder="Mes / año o 'actual'"></div>
+  </div>
+  <div class="field-group"><label class="f-label">¿Qué cambió gracias a tu trabajo ahí?</label><textarea id="exp_logro_${i}" placeholder="Con un número si podés"></textarea></div>
+`, 'Experiencia');
+
+/* ---- educación ---- */
+const eduBlocks = buildRepeatable('eduWrap','eduAddBtn',3,1,(i)=>`
+  <div class="field-group"><label class="f-label">Título o curso</label><input type="text" id="edu_titulo_${i}"></div>
+  <div class="inline-row">
+    <div class="field-group"><label class="f-label">Institución</label><input type="text" id="edu_inst_${i}"></div>
+    <div class="field-group"><label class="f-label">Año</label><input type="text" id="edu_anio_${i}"></div>
+  </div>
+`, 'Formación');
+
+/* ---- idiomas ---- */
+const LEVELS = ['Básico','Intermedio','Avanzado','Nativo'];
+const langBlocks = buildRepeatable('langWrap','langAddBtn',4,2,(i)=>`
+  <div class="field-group"><label class="f-label">Idioma</label><input type="text" id="lang_nombre_${i}"></div>
+  <div class="field-group"><label class="f-label">Nivel</label><div class="chip-row" id="lang_nivel_${i}"></div></div>
+`, 'Idioma');
+langBlocks.forEach((block, i) => {
+  const grid = block.querySelector(`#lang_nivel_${i}`);
+  LEVELS.forEach(l => {
+    const chip = document.createElement('div');
+    chip.className = 'chip';
+    chip.textContent = l;
+    chip.dataset.level = l;
+    chip.onclick = () => { [...grid.children].forEach(c => c.classList.toggle('picked', c === chip)); };
+    grid.appendChild(chip);
+  });
+});
+function langLevel(i){ const picked = document.querySelector(`#lang_nivel_${i} .picked`); return picked ? picked.textContent : ''; }
+
+/* ---- nav ---- */
+const stepNum = document.getElementById('stepNum');
+const progressFill = document.getElementById('progressFill');
+const btnBack = document.getElementById('btnBack');
+const btnNext = document.getElementById('btnNext');
+
+function render(){
+  document.querySelectorAll('.step').forEach(s => s.classList.toggle('active', Number(s.dataset.step) === current));
+  stepNum.textContent = String(Math.min(current, TOTAL_STEPS)).padStart(2,'0');
+  progressFill.style.width = (Math.min(current, TOTAL_STEPS) / TOTAL_STEPS * 100) + '%';
+  btnBack.disabled = current === 1;
+  btnNext.textContent = current === TOTAL_STEPS ? 'Terminar' : 'Siguiente';
+  btnNext.style.display = current > TOTAL_STEPS ? 'none' : 'inline-block';
+  if (current > TOTAL_STEPS) buildSummary();
+}
+
+function q(id){ const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+function formatSummary(){
+  const lines = [];
+  lines.push('📋 Discovery de CV — respuestas\n');
+
+  lines.push('1) Contacto');
+  lines.push(`Nombre: ${q('c_nombre') || '-'}`);
+  lines.push(`Teléfono: ${q('c_tel') || '-'}`);
+  lines.push(`Email: ${q('c_mail') || '-'}`);
+  lines.push(`Ciudad: ${q('c_ciudad') || '-'}`);
+  lines.push(`LinkedIn: ${q('c_linkedin') || '-'}\n`);
+
+  lines.push('2) Rubro objetivo');
+  lines.push(`Rubro / rol: ${q('t_rubro') || '-'}`);
+  lines.push(`Detalle: ${q('t_detalle') || '-'}\n`);
+
+  lines.push('3) Situación actual');
+  lines.push(situationValue || '(sin elegir)');
+  lines.push('');
+
+  lines.push('4) Experiencia laboral');
+  expBlocks.forEach((b,i) => {
+    if (b.hidden) return;
+    const puesto = q(`exp_puesto_${i}`), empresa = q(`exp_empresa_${i}`);
+    if (!puesto && !empresa) return;
+    lines.push(`- ${puesto || '(puesto)'} · ${empresa || '(empresa)'} · ${q(`exp_desde_${i}`) || '?'} a ${q(`exp_hasta_${i}`) || '?'}`);
+    lines.push(`  Logro: ${q(`exp_logro_${i}`) || '-'}`);
+  });
+  lines.push('');
+
+  lines.push('5) Educación y certificaciones');
+  eduBlocks.forEach((b,i) => {
+    if (b.hidden) return;
+    const titulo = q(`edu_titulo_${i}`);
+    if (!titulo) return;
+    lines.push(`- ${titulo} · ${q(`edu_inst_${i}`) || '-'} · ${q(`edu_anio_${i}`) || '-'}`);
+  });
+  lines.push('');
+
+  lines.push('6) Fortalezas y herramientas');
+  lines.push(`Fortalezas: ${q('s_fortalezas') || '-'}`);
+  lines.push(`Herramientas: ${q('s_herramientas') || '-'}\n`);
+
+  lines.push('7) Idiomas');
+  langBlocks.forEach((b,i) => {
+    if (b.hidden) return;
+    const nombre = q(`lang_nombre_${i}`);
+    if (!nombre) return;
+    lines.push(`- ${nombre}: ${langLevel(i) || '(sin nivel)'}`);
+  });
+  lines.push('');
+
+  lines.push('8) Por qué lo elegirían');
+  lines.push(q('p_pitch') || '-');
+  lines.push('');
+
+  lines.push('9) Datos opcionales');
+  lines.push(`Foto: ${document.getElementById('o_foto_chk').checked ? ('Sí — ' + (q('o_foto_nota') || 'sin nota')) : 'No'}`);
+  lines.push(`Edad: ${document.getElementById('o_edad_chk').checked ? (q('o_edad_val') || 'Sí') : 'No'}`);
+  lines.push(`Estado civil: ${document.getElementById('o_civil_chk').checked ? (q('o_civil_val') || 'Sí') : 'No'}\n`);
+
+  lines.push('10) Restricciones y contexto');
+  lines.push(`Omitir: ${q('r_omitir') || '-'}`);
+  lines.push(`Deadline: ${q('r_deadline') || '-'}`);
+
+  return lines.join('\n');
+}
+
+function buildSummary(){
+  document.getElementById('summaryOut').textContent = formatSummary();
+}
+
+document.getElementById('btnSendWa').onclick = () => {
+  const text = encodeURIComponent(formatSummary());
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${text}`, '_blank');
+};
+
+btnNext.onclick = () => { if (current <= TOTAL_STEPS + 1) current++; render(); };
+btnBack.onclick = () => { if (current > 1) current--; render(); };
+
+render();
+</script>
+</body>
+</html>
